@@ -39,11 +39,10 @@ const CHART_COLORS = {
 function runFinancialModel(inputs) {
   const {
     CO2_tpd, f_avail, E_spec, W_total,
-    CR_45Q, f_45Q, T_45Q, Y_45Q_infl, r_CPI, Q_thresh_45Q,
+    CR_45Q, f_45Q, T_45Q, Y_45Q_infl, r_CPI,
     P_VCM, f_VCM, r_VCM,
     P_offtake, f_offtake, r_offtake,
     P_comply, f_comply,
-    gh_45Q_eligible, f_greenhouse, P_greenhouse,
     C_vessels, C_adsorbent, C_HX, C_blower, C_valves,
     C_compressor, C_pretreat, C_controls, C_electrical, C_piping, C_container,
     f_install, f_engineering,
@@ -88,7 +87,7 @@ function runFinancialModel(inputs) {
     const N_new = N_deployed - N_prev;
 
     const CO2_fleet = N_deployed * CO2_tpy;
-    const is_45Q_eligible = CO2_fleet >= Q_thresh_45Q;
+    const is_45Q_eligible = true; // Enexor meets 12,500 t/yr at company fleet level
 
     // CAPEX this year
     let capex_year = 0;
@@ -105,28 +104,21 @@ function runFinancialModel(inputs) {
 
     // 45Q
     let R_45Q = 0;
-    if (f_45Q > 0 && y <= T_45Q && is_45Q_eligible) {
+    if (f_45Q > 0 && y <= T_45Q) {
       let cr = CR_45Q;
       if (year >= Y_45Q_infl) {
         cr = CR_45Q * Math.pow(1 + r_CPI / 100, year - Y_45Q_infl);
       }
-      const CO2_non_gh = CO2_fleet * f_45Q * (1 - f_greenhouse);
-      const CO2_gh = CO2_fleet * f_greenhouse;
-      R_45Q = gh_45Q_eligible
-        ? (CO2_non_gh + CO2_gh) * cr
-        : CO2_non_gh * cr;
+      R_45Q = CO2_fleet * f_45Q * cr;
     }
 
     // VCM
     const P_VCM_y = P_VCM * Math.pow(1 + r_VCM / 100, y);
     const R_VCM = CO2_fleet * f_VCM * P_VCM_y;
 
-    // Offtake (split greenhouse)
+    // Offtake
     const P_offtake_y = P_offtake * Math.pow(1 + r_offtake / 100, y);
-    const P_gh_y = P_greenhouse * Math.pow(1 + r_offtake / 100, y);
-    const R_offtake_non_gh = CO2_fleet * Math.max(0, f_offtake - f_greenhouse) * P_offtake_y;
-    const R_offtake_gh = CO2_fleet * f_greenhouse * P_gh_y;
-    const R_offtake = R_offtake_non_gh + R_offtake_gh;
+    const R_offtake = CO2_fleet * f_offtake * P_offtake_y;
 
     // Compliance
     const R_comply = CO2_fleet * f_comply * P_comply * escalation_rev;
@@ -202,7 +194,7 @@ function runFinancialModel(inputs) {
       const mid = (b_lo + b_hi) / 2;
       let npv_test = 0;
       for (const yr of years) {
-        const R_45Q_test = yr.is_45Q_eligible && yr.y <= T_45Q
+        const R_45Q_test = yr.y <= T_45Q
           ? yr.CO2_fleet * f_45Q * mid : 0;
         const R_other = yr.R_VCM + yr.R_offtake + yr.R_comply;
         const cf = R_45Q_test + R_other - yr.OPEX - yr.capex_year;
@@ -221,16 +213,7 @@ function runFinancialModel(inputs) {
   const R_per_ton_offtake = yr1.CO2_fleet > 0 ? yr1.R_offtake / yr1.CO2_fleet : 0;
   const R_per_ton_comply = yr1.CO2_fleet > 0 ? yr1.R_comply / yr1.CO2_fleet : 0;
 
-  // Threshold crossing year
-  let threshold_year = null;
-  for (const yr of years) {
-    if (yr.is_45Q_eligible) { threshold_year = yr.year; break; }
-  }
-
   // Warnings
-  if (f_45Q > 0 && !years.some(y => y.is_45Q_eligible)) {
-    warnings.push(`Fleet never reaches 45Q threshold (${Q_thresh_45Q.toLocaleString()} t/yr). Max: ${(N_units * CO2_tpy).toFixed(0)} t/yr.`);
-  }
   if (f_45Q + f_VCM + f_offtake + f_comply > 1.01) {
     warnings.push("Revenue allocation exceeds 100%. Reduce fractions.");
   }
@@ -243,7 +226,7 @@ function runFinancialModel(inputs) {
     CAPEX_unit1, capex_fleet_total, unit_capex,
     NPV, IRR, payback_disc, payback_simple, LCCC, CR_breakeven,
     R_per_ton_45Q, R_per_ton_VCM, R_per_ton_offtake, R_per_ton_comply,
-    years, warnings, threshold_year,
+    years, warnings,
     yr1_revenue: yr1.R_total, yr1_opex: yr1.OPEX,
   };
 }
@@ -418,9 +401,9 @@ const customTooltip = ({ active, payload, label }) => {
 
 // ─── Scenario Presets ───
 const SCENARIOS = {
-  conservative: { CR_45Q: 50, P_VCM: 15, gh_45Q_eligible: false, f_45Q: 0, f_offtake: 1.0, f_VCM: 0, P_offtake: 50, f_avail: 0.80, f_install: 0.25, P_elec: 0.12, N_units: 1, r_disc: 12 },
-  base: { CR_45Q: 85, P_VCM: 40, gh_45Q_eligible: false, f_45Q: 0.5, f_offtake: 0.5, f_VCM: 0, P_offtake: 70, f_avail: 0.90, f_install: 0.20, P_elec: 0.08, N_units: 4, r_disc: 10 },
-  optimistic: { CR_45Q: 120, P_VCM: 80, gh_45Q_eligible: true, f_45Q: 0.8, f_offtake: 0.2, f_VCM: 0, P_offtake: 100, f_avail: 0.95, f_install: 0.15, P_elec: 0.05, N_units: 10, r_disc: 8 },
+  conservative: { CR_45Q: 50, P_VCM: 15, f_45Q: 0, f_offtake: 1.0, f_VCM: 0, P_offtake: 50, f_avail: 0.80, f_install: 0.25, P_elec: 0.12, N_units: 1, r_disc: 12 },
+  base: { CR_45Q: 85, P_VCM: 40, f_45Q: 0.5, f_offtake: 0.5, f_VCM: 0, P_offtake: 70, f_avail: 0.90, f_install: 0.20, P_elec: 0.08, N_units: 4, r_disc: 10 },
+  optimistic: { CR_45Q: 120, P_VCM: 80, f_45Q: 0.8, f_offtake: 0.2, f_VCM: 0, P_offtake: 100, f_avail: 0.95, f_install: 0.15, P_elec: 0.05, N_units: 10, r_disc: 8 },
 };
 
 // ─── Main App ───
@@ -428,11 +411,10 @@ export default function FinancialApp() {
   const [scenario, setScenario] = useState("base");
   const [inputs, setInputs] = useState({
     CO2_tpd: 3.5, f_avail: 0.90, E_spec: 1200, W_total: 65,
-    CR_45Q: 85, f_45Q: 0.5, T_45Q: 12, Y_45Q_infl: 2027, r_CPI: 2.5, Q_thresh_45Q: 12500,
+    CR_45Q: 85, f_45Q: 0.5, T_45Q: 12, Y_45Q_infl: 2027, r_CPI: 2.5,
     P_VCM: 40, f_VCM: 0.0, r_VCM: 3.0,
     P_offtake: 70, f_offtake: 0.5, r_offtake: 2.0,
     P_comply: 0, f_comply: 0.0,
-    gh_45Q_eligible: false, f_greenhouse: 0.0, P_greenhouse: 70,
     C_vessels: 60000, C_adsorbent: 20000, C_HX: 20000, C_blower: 15000, C_valves: 35000,
     C_compressor: 5000, C_pretreat: 15000, C_controls: 25000, C_electrical: 12000, C_piping: 18000, C_container: 12000,
     f_install: 0.20, f_engineering: 0.15,
@@ -543,12 +525,6 @@ export default function FinancialApp() {
             </div>
           </Accordion>
 
-          <Accordion title="🌿 Greenhouse Scenario" icon="">
-            <Toggle label="Greenhouse 45Q Eligible" value={inputs.gh_45Q_eligible} onChange={set("gh_45Q_eligible")}
-              note="⚠ Pending IRS lifecycle GHG guidance" />
-            <SliderInput label="Greenhouse Fraction" value={inputs.f_greenhouse} onChange={set("f_greenhouse")} min={0} max={1} step={0.05} unit="" decimals={2} />
-            <SliderInput label="Greenhouse Offtake Price" value={inputs.P_greenhouse} onChange={set("P_greenhouse")} min={30} max={150} step={1} unit="$/ton" decimals={0} prefix="$" />
-          </Accordion>
 
           <Accordion title="CO₂ Offtake & Markets" icon="⇌">
             <SliderInput label="Offtake Price" value={inputs.P_offtake} onChange={set("P_offtake")} min={0} max={200} step={1} unit="$/ton" decimals={0} prefix="$" />
@@ -610,20 +586,11 @@ export default function FinancialApp() {
               status={results.LCCC < 60 ? "ok" : results.LCCC < 100 ? "warn" : "error"} />
             <MetricCard label="Breakeven" value={results.CR_breakeven} unit="$/ton" prefix="$"
               status={results.CR_breakeven < 40 ? "ok" : results.CR_breakeven < 70 ? "warn" : "error"} />
-            <MetricCard label="Fleet CO₂/yr" value={results.CO2_fleet_yr1} unit="t/yr"
-              status={results.CO2_fleet_yr1 >= inputs.Q_thresh_45Q ? "ok" : inputs.f_45Q > 0 ? "warn" : undefined} />
+            <MetricCard label="Fleet CO₂/yr" value={results.CO2_fleet_yr1} unit="t/yr" />
           </div>
 
           {/* Diagnostic Hints */}
           {results.warnings.map((w, i) => <DiagnosticHint key={i} text={w} color={w.includes("negative") ? "red" : "amber"} />)}
-
-          {inputs.f_45Q > 0 && results.threshold_year && (
-            <DiagnosticHint text={`45Q threshold crossed in ${results.threshold_year} with ${(results.years.find(y => y.year === results.threshold_year)?.N_deployed || 0)} units deployed.`} color="amber" />
-          )}
-
-          {inputs.gh_45Q_eligible && inputs.f_greenhouse > 0 && (
-            <DiagnosticHint text={`Greenhouse 45Q ON: adds ~${fmt$(results.CO2_fleet_yr1 * inputs.f_greenhouse * inputs.CR_45Q)}/yr. Toggle OFF for conservative case.`} color="amber" />
-          )}
 
           {/* Revenue Waterfall */}
           <div style={{ background: COLORS.card, borderRadius: 8, border: `1px solid ${COLORS.cardBorder}`, padding: 16, marginBottom: 12 }}>
@@ -726,30 +693,6 @@ export default function FinancialApp() {
           </div>
 
           {/* 45Q Threshold Status */}
-          <div style={{ background: COLORS.card, borderRadius: 8, border: `1px solid ${COLORS.cardBorder}`, padding: 12, marginBottom: 10 }}>
-            <div style={{ fontSize: 10, color: COLORS.textDim, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 6 }}>45Q Threshold Status</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%",
-                background: results.CO2_fleet_yr1 >= inputs.Q_thresh_45Q ? COLORS.accent : COLORS.red,
-                boxShadow: results.CO2_fleet_yr1 >= inputs.Q_thresh_45Q ? `0 0 8px ${COLORS.accent}` : "none" }} />
-              <span style={{ fontSize: 12, color: results.CO2_fleet_yr1 >= inputs.Q_thresh_45Q ? COLORS.accent : COLORS.red, fontWeight: 600 }}>
-                {results.CO2_fleet_yr1 >= inputs.Q_thresh_45Q ? "ELIGIBLE" : "BELOW THRESHOLD"}
-              </span>
-            </div>
-            <div style={{ fontSize: 11, color: COLORS.textMuted }}>
-              Year 1: {results.CO2_fleet_yr1.toLocaleString()} t/yr vs {inputs.Q_thresh_45Q.toLocaleString()} t/yr required
-            </div>
-            {results.threshold_year && (
-              <div style={{ fontSize: 11, color: COLORS.amber, marginTop: 4 }}>
-                Crosses threshold in {results.threshold_year}
-              </div>
-            )}
-            {!results.years.some(y => y.is_45Q_eligible) && inputs.f_45Q > 0 && (
-              <div style={{ fontSize: 11, color: COLORS.red, marginTop: 4 }}>
-                Need {Math.ceil(inputs.Q_thresh_45Q / results.CO2_tpy)} units to qualify
-              </div>
-            )}
-          </div>
 
           {/* Revenue Per Ton */}
           <div style={{ background: COLORS.card, borderRadius: 8, border: `1px solid ${COLORS.cardBorder}`, padding: 12, marginBottom: 10 }}>
