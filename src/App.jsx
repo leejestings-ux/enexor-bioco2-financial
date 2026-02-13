@@ -755,6 +755,63 @@ export default function FinancialApp() {
               </table>
             </div>
           </div>
+
+          {/* 45Q Reference */}
+          <div style={{ background: COLORS.card, borderRadius: 8, border: `1px solid ${COLORS.cardBorder}`, padding: 12, marginTop: 10 }}>
+            <div style={{ fontSize: 10, color: COLORS.textDim, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+              IRC §45Q — Post-OBBBA Reference
+            </div>
+
+            {[
+              {
+                title: "Authorizing Law",
+                ref: "P.L. 119-21 §70522",
+                text: "The One Big Beautiful Bill Act (OBBBA), signed July 4, 2025, preserved and expanded the §45Q Carbon Oxide Sequestration Credit originally established in the IRA (P.L. 117-169). OBBBA maintained the full credit structure while achieving utilization parity and adding FEOC restrictions."
+              },
+              {
+                title: "Point Source Credit — All Pathways at Parity",
+                ref: "IRC §45Q(a)(3)(A), OBBBA §70522",
+                text: "Post-OBBBA, all point source pathways — geologic sequestration, enhanced oil recovery, and utilization — qualify at the same $85/ton rate with PWA compliance. Prior law set utilization at $60/ton. This 42% increase eliminates the economic penalty for productive use of captured CO₂ and applies to carbon oxide captured using equipment placed in service after the IRA effective date."
+              },
+              {
+                title: "Inflation Adjustment",
+                ref: "IRC §45Q(b)(1)(A)",
+                text: "Credit amounts adjust annually for inflation starting in calendar year 2027 using the GDP implicit price deflator, with 2025 as the base year. The adjustment is cumulative — each year's credit reflects total inflation from the 2025 baseline, not just the prior year's change. This protects real credit value over the 12-year credit period."
+              },
+              {
+                title: "Transferability",
+                ref: "IRC §6418",
+                text: "Credit holders may transfer all or a portion of §45Q credits to unrelated taxpayers for cash consideration. The transfer payment is not includible in the transferor's gross income and is not deductible by the transferee. Credits typically transfer at 90–95¢ per dollar of face value. This provision was preserved permanently by OBBBA and enables project developers without sufficient tax liability to monetize credits immediately."
+              },
+              {
+                title: "Direct Pay (Elective Payment)",
+                ref: "IRC §6417",
+                text: "Tax-exempt entities (municipalities, tribal governments, rural electric co-ops, and certain tax-exempt organizations) may elect to treat §45Q credits as overpayments of tax, receiving direct cash payment from the IRS. For taxable entities, direct pay is available only for the first 5 tax years after equipment is placed in service. OBBBA preserved direct pay — it was not repealed. Entities must make the election on a timely-filed return for the tax year."
+              },
+              {
+                title: "FEOC — Significant Foreign Entity (SFE) Exclusion",
+                ref: "OBBBA §70522",
+                text: "No §45Q credit is allowed if the taxpayer is a Significant Foreign Entity of Concern (SFE) or if the carbon capture equipment is manufactured, assembled, or produced by an SFE. This restriction applies to tax years beginning after July 4, 2025. SFEs include entities owned by, controlled by, or subject to the jurisdiction of foreign entities of concern as defined in 42 USC §18741(a)(5), which targets China, Russia, North Korea, and Iran. Separately, Foreign Interested Entities (FIEs) — entities with 10%+ foreign-of-concern ownership — are excluded for tax years beginning after July 4, 2027."
+              },
+            ].map((item, i) => (
+              <div key={i} style={{ marginBottom: i < 5 ? 10 : 0, paddingBottom: i < 5 ? 10 : 0,
+                borderBottom: i < 5 ? `1px solid ${COLORS.bg}` : "none" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 3 }}>
+                  <span style={{ fontSize: 11, color: COLORS.accent, fontWeight: 600 }}>{item.title}</span>
+                </div>
+                <div style={{ fontSize: 9, color: COLORS.cyan, marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
+                  {item.ref}
+                </div>
+                <div style={{ fontSize: 10, color: COLORS.textMuted, lineHeight: 1.5 }}>
+                  {item.text}
+                </div>
+              </div>
+            ))}
+
+            <div style={{ marginTop: 10, padding: "6px 8px", background: COLORS.bg, borderRadius: 4, fontSize: 9, color: COLORS.textMuted, lineHeight: 1.5 }}>
+              <span style={{ color: COLORS.amber }}>Note:</span> This summary is for reference only and does not constitute legal or tax advice. Credit eligibility requires compliance with all applicable IRS regulations including prevailing wage & apprenticeship (PWA) requirements, lifecycle greenhouse gas analysis, adequate security measures for geologic sequestration, and timely filing of Form 8933. Consult qualified tax counsel for project-specific guidance.
+            </div>
+          </div>
         </div>
       </div>
     </div>
