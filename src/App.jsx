@@ -482,8 +482,10 @@ export default function FinancialApp() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
         padding: "12px 24px", borderBottom: `1px solid ${COLORS.panelBorder}`, background: COLORS.panel }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <svg width={28} height={28} viewBox="0 0 40 40" fill="none">
-            <path d="M8 8L20 20M20 20L32 8M20 20L8 32M20 20L32 32" stroke={COLORS.accent} strokeWidth="3.5" strokeLinecap="round" />
+          <svg width={32} height={32} viewBox="0 0 600 600" fill="none">
+            <path d="M21.6,63.5h100.4c21.4,0,41.9,9,56.4,24.8l179.1,200.7-139.5,152.2c-14.5,15.8-35,24.9-56.5,24.9H60.2s162.8-177,162.8-177L21.6,63.5Z" fill="#fff"/>
+            <path d="M375.2,269.6l145.1-158.3h-100.4c-21.4,0-41.9,9-56.4,24.8l-55,59.8,66.8,73.7Z" fill="#fff"/>
+            <path d="M374.5,309.9l-67.7,73.9,113.7,127.9c14.5,15.8,35,24.9,56.5,24.9h101.4l-203.8-226.6Z" fill="#fff"/>
           </svg>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.white }}>BioCO₂ Financial Analysis</div>
